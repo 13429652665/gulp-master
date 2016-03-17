@@ -15,13 +15,15 @@ var gulp    = require('gulp'),                 //基础库
     autoprefixer = require('gulp-autoprefixer'),
     notify = require("gulp-notify"),
     sourcemaps = require('gulp-sourcemaps'),
-    rev = require('gulp-rev-append'),
+    spritesmith= require('gulp.spritesmith'), //生成精灵图
+    rev = require('gulp-rev-append'),     //给页面的引用添加版本号，清除页面引用缓存。
     //jshint = require('gulp-jshint'),           //js检查
     uglify  = require('gulp-uglify'),          //js压缩
     rename = require('gulp-rename'),          //重命名
     concat  = require('gulp-concat'),       //合并文件
     cssver = require('gulp-make-css-url-version'), //css文件里引用url加版本号（文件MD5）
-    clean = require('gulp-clean');             //清空文件夹
+    clean = require('gulp-clean'),           //清空文件夹
+    buffer = require('vinyl-buffer');
    // tinylr = require('tiny-lr'),               //livereload
     //server = tinylr(),
    // port = 35729,
@@ -49,14 +51,13 @@ gulp.task('html', function() {
 
 // 样式处理
 gulp.task('css', function() {
-    var cssSrc = 'src/scss/*.scss',
+    var cssSrc = 'src/scss/main.scss',
         cssDst = 'dist/css',
         srcCss = 'src/css';
     return sass(cssSrc,{
-        compass: true,
+        compass: false,
         sourcemap: true
     })
-        .pipe(concat('main.min.css'))
         .pipe(autoprefixer({
             browsers: ['last 2 versions', 'Android >= 4.0'],
             cascade: true, //是否美化属性值 默认：true 像这样：
@@ -94,6 +95,39 @@ gulp.task('images', function(){
 
 });
 
+ // 精灵图
+ var sprites= {
+     src:  './src/img/sprites/icon/*.png',
+     dist: './dist/img',
+     dest: {
+         css:  './src/scss/base/',
+         image:  './src/img/sprites'
+     },
+    options: {
+        cssName: '_sprites.scss',
+        cssFormat: 'css',
+        cssOpts: {
+            cssClass: function (item) {
+                // If this is a hover sprite, name it as a hover one (e.g. 'home-hover' -> 'home:hover')
+                if (item.name.indexOf('-hover') !== -1) {
+                    return '.icon-' + item.name.replace('-hover', ':hover');
+                    // Otherwise, use the name as the selector (e.g. 'home' -> 'home')
+                } else {
+                    return '.icon-' + item.name;
+                }
+            }
+        },
+        imgName: 'icon-sprite.png',
+        imgPath: '../img/icon-sprite.png'
+    }
+};
+gulp.task('sprite',function(){
+    var spriteData = gulp.src(sprites.src).pipe(spritesmith(sprites.options));
+         spriteData.img
+        .pipe(gulp.dest(sprites.dest.image));
+         spriteData.css
+        .pipe(gulp.dest(sprites.dest.css));
+});
 // js处理
 gulp.task('js', function () {
     var mainSrc = 'src/js/main.js',
@@ -147,7 +181,7 @@ gulp.task('watch',function(){
         });
 
         // 监听images
-        gulp.watch('src/img/**/*', function(){
+        gulp.watch('src/img/*', function(){
             gulp.run('images');
         });
 
