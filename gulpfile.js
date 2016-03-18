@@ -41,12 +41,16 @@ gulp.task('html', function() {
         minifyJS: true,//压缩页面JS
         minifyCSS: true//压缩页面CSS
     };
-    var htmlSrc = 'src/*.html',
-        htmlDst = 'dist/';
+    var htmlSrc = './src/*.html',
+        htmlDst = './dist/';
     gulp.src(htmlSrc)
+             //给页面引用url添加版本号，以清除页面缓存
+             //gulp-rev-append插件将通过正则(?:href|src)=”(.*)[?]rev=(.*)[“]查找并给指定链接填加版本号（默认根据文件MD5生成，因此文件未发生改变，此版本号将不会变 ?rev=@@hash）
+        .pipe(rev())
         .pipe(htmlmin(options))
         //.pipe(livereload(server))
         .pipe(gulp.dest(htmlDst))
+
 });
 
 // 样式处理
@@ -75,23 +79,23 @@ gulp.task('css', function() {
         .pipe(sourcemaps.write('maps', {addComment: false}))
         .pipe(plumber({errorHandler: notify.onError('Error: <%= error.message %>')}))
         //.pipe(filter) // Don’t write sourcemaps of sourcemaps
-
         //.pipe(filter.restore) // Restore original files
-        .pipe(gulp.dest(cssDst));
+        .pipe(gulp.dest(cssDst))
 });
 
 // 图片处理
 gulp.task('images', function(){
-    var imgSrc = './src/img/**/*',
+    var imgSrc = ['./src/img/*.{png,jpg,gif,ico}','!./src/img/*sprite.png'],
         imgDst = './dist/img';
-    gulp.src(imgSrc)
+    return gulp.src(imgSrc)
         .pipe(cache(imagemin({
             progressive: true,
             svgoPlugins: [{removeViewBox: false}],//不要移除svg的viewbox属性
             use: [pngquant()] //使用pngquant深度压缩png图片的imagemin插件
         })))
         //.pipe(livereload(server))
-        .pipe(gulp.dest(imgDst));
+        .pipe(gulp.dest(imgDst))
+
 
 });
 
@@ -101,11 +105,11 @@ gulp.task('images', function(){
      dist: './dist/img',
      dest: {
          css:  './src/scss/base/',
-         image:  './src/img/sprites'
+         image:  './src/img/'
      },
     options: {
         cssName: '_sprites.scss',
-        cssFormat: 'css',
+        cssFormat: 'scss',
         cssOpts: {
             cssClass: function (item) {
                 // If this is a hover sprite, name it as a hover one (e.g. 'home-hover' -> 'home:hover')
@@ -124,9 +128,13 @@ gulp.task('images', function(){
 gulp.task('sprite',function(){
     var spriteData = gulp.src(sprites.src).pipe(spritesmith(sprites.options));
          spriteData.img
-        .pipe(gulp.dest(sprites.dest.image));
+             .pipe(buffer())
+             .pipe(imagemin())
+             .pipe(gulp.dest(sprites.dest.image))
+             .pipe(gulp.dest(sprites.dist));
          spriteData.css
-        .pipe(gulp.dest(sprites.dest.css));
+             .pipe(gulp.dest(sprites.dest.css))
+
 });
 // js处理
 gulp.task('js', function () {
@@ -141,26 +149,21 @@ gulp.task('js', function () {
         //.pipe(concat('main.js'))
         //.pipe(gulp.dest(jsDst))
         .pipe(uglify())
-        .pipe(rename({ suffix: '.min' }))
+        //.pipe(rename({ suffix: '.min' }))
         .pipe(gulp.dest(mainDst));
         //.pipe(livereload(server));
 
-    gulp.src(appSrc)
+   /* gulp.src(appSrc)
         .pipe(uglify())
-        .pipe(concat("vendor.min.js"))
-        .pipe(gulp.dest(appDst));
+        .pipe(concat("vendor.js"))
+        .pipe(gulp.dest(appDst));*/
+
         //.pipe(livereload(server));
 });
-//给页面引用url添加版本号，以清除页面缓存
-//gulp-rev-append插件将通过正则(?:href|src)=”(.*)[?]rev=(.*)[“]查找并给指定链接填加版本号（默认根据文件MD5生成，因此文件未发生改变，此版本号将不会变 ?rev=@@hash）
-gulp.task('testRev', function () {
-    gulp.src('src/*.html')
-        .pipe(rev())
-        .pipe(gulp.dest('dist'));
-});
+
 // 清空图片、样式、js
 gulp.task('clean', function() {
-    gulp.src(['dist/css','dist/js','src/css', 'dist/img','dist/*.html'], {read: false})
+    gulp.src(['dist/css/*','dist/js/*','src/css/*', 'dist/img/*','dist/*.html'], {read: false})
         .pipe(clean());
 });
 // 默认任务 清空图片、样式、js并重建 运行语句 gulp
@@ -169,26 +172,20 @@ gulp.task('default', ['clean'], function(){
 });
 // 监听任务 运行语句 gulp watch
 gulp.task('watch',function(){
-
         // 监听html
         gulp.watch('src/*.html', function(event){
             gulp.run('html');
         });
-
         // 监听css
-        gulp.watch('src/scss/*.scss', function(){
+        gulp.watch('src/scss/main.scss/*.scss', function(){
             gulp.run('css');
         });
-
         // 监听images
         gulp.watch('src/img/*', function(){
             gulp.run('images');
         });
-
         // 监听js
         gulp.watch('src/js/*.js', function(){
             gulp.run('js');
         });
-
-
 });
