@@ -173,19 +173,11 @@ gulp.task('default', ['clean'], function(){
 // 监听任务 运行语句 gulp watch
 gulp.task('watch',function(){
         // 监听html
-        gulp.watch('src/*.html', function(event){
-            gulp.run('html');
-        });
+        gulp.watch('src/*.html',['html']);
         // 监听css
-        gulp.watch('src/scss/main.scss/*.scss', function(){
-            gulp.run('css');
-        });
+        gulp.watch('src/scss/**/*.scss', ['css']);
         // 监听images
-        gulp.watch('src/img/*', function(){
-            gulp.run('images');
-        });
+        gulp.watch('src/img/*',['images']);
         // 监听js
-        gulp.watch('src/js/*.js', function(){
-            gulp.run('js');
-        });
+        gulp.watch('src/js/*.js',['js']);
 });
